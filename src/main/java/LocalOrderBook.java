@@ -6,8 +6,9 @@ import java.util.List;
 import java.util.TreeMap;
 
 public class LocalOrderBook {
-    private final TreeMap<Double, Double> bids = new TreeMap<>(Comparator.reverseOrder());
+
     private final TreeMap<Double, Double> asks = new TreeMap<>();
+    private final TreeMap<Double, Double> bids = new TreeMap<>(Comparator.reverseOrder());
     private final int depth;
 
     public LocalOrderBook(int depthLimit) {
@@ -25,8 +26,8 @@ public class LocalOrderBook {
     public void initialize(List<OrderLevel> asksSnapshot, List<OrderLevel> bidsSnapshot) {
         asks.clear();
         bids.clear();
-        bidsSnapshot.forEach(bid -> bids.put(bid.price(), bid.volume()));
         asksSnapshot.forEach(ask -> asks.put(ask.price(), ask.volume()));
+        bidsSnapshot.forEach(bid -> bids.put(bid.price(), bid.volume()));
     }
 
     public void applyUpdate(OrderBookUpdate update) {
@@ -47,24 +48,17 @@ public class LocalOrderBook {
             }
         }
         trim();
-
-//        System.out.println();
-//        System.out.println("Best bid " + this.getBids().lastKey());
-//        System.out.println("Best ask " + this.getAsks().lastKey());
-//        System.out.println();
     }
 
     private void trim() {
 
         while (asks.size() > depth) {
-
             asks.pollLastEntry();
         }
 
         while (bids.size() > depth) {
             bids.pollLastEntry();
         }
-
     }
 
     public double getMidPrice() {

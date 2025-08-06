@@ -43,36 +43,27 @@ public class WebSocketConnector extends WebSocketClient {
             JsonObject data = array.get(1).getAsJsonObject();
 
             if (data.has("as") && data.has("bs")) {
+
                 List<OrderLevel> asks = parseLevel(data.getAsJsonArray("as"));
                 List<OrderLevel> bids = parseLevel(data.getAsJsonArray("bs"));
                 orderBook.initialize(asks, bids);
-
             } else {
-//                List <OrderLevel> asks;
-//                List<OrderLevel> bids;
+                List <OrderLevel> asks;
+                List<OrderLevel> bids;
 
-//                if (data.has("a")) {
-//                    asks = parseLevel(data.getAsJsonArray("a"));
-//                } else {
-//                    asks = new ArrayList<>();
-//                }
-//
-//                if (data.has("b")) {
-//                    bids = parseLevel(data.getAsJsonArray("b"));
-//                } else {
-//                    bids = new ArrayList<>();
-//                }
+                if (data.has("a")) {
+                    asks = parseLevel(data.getAsJsonArray("a"));
+                } else {
+                    asks = Collections.emptyList();
+                }
 
-                List<OrderLevel> asks = data.has("a")
-                        ? parseLevel(data.getAsJsonArray("a"))
-                        : Collections.emptyList();
-
-                List<OrderLevel> bids = data.has("b")
-                        ? parseLevel(data.getAsJsonArray("b"))
-                        : Collections.emptyList();
+                if (data.has("b")) {
+                    bids = parseLevel(data.getAsJsonArray("b"));
+                } else {
+                    bids = Collections.emptyList();
+                }
 
 //                System.out.println(asks.size() + " - " + bids.size());
-
                 orderBook.applyUpdate(new OrderBookUpdate(asks, bids));
             }
         }

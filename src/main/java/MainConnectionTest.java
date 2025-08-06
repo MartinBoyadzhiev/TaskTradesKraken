@@ -3,12 +3,14 @@ import dto.KrakenSubscription;
 
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class MainConnectionTest {
 
     private static final String BASE_WS_URL = "wss://ws.kraken.com/";
-    private static final Gson gson = new Gson();
     private static final int DEPTH_LIMIT = 100;
+    private static final Gson gson = new Gson();
+    private static final Logger logger = Logger.getLogger("MainConnectionTest");
 
     public static void main(String[] args) throws URISyntaxException, InterruptedException {
 
@@ -19,8 +21,6 @@ public class MainConnectionTest {
         WebSocketConnector ws = new WebSocketConnector(BASE_WS_URL, sub, orderBook);
         ws.connect();
 
-
-
         while (true) {
             Thread.sleep(2000);
 
@@ -28,31 +28,10 @@ public class MainConnectionTest {
                 continue;
             }
 
-            System.out.println(orderBook.getAsks().firstKey());
-            System.out.println(orderBook.getBids().firstKey());
-            System.out.println(orderBook.getMidPrice());
+            System.out.println("Best ASK is - " + orderBook.getAsks().firstKey());
+            System.out.println("Best BID is - " + orderBook.getBids().firstKey());
+            System.out.println("MID price is - " + orderBook.getMidPrice());
             System.out.println();
-
-//            System.out.println(orderBook.getMidPrice());
-//            System.out.println();
-//            System.out.println("Best ask is " + orderBook.getAsks().firstKey());
-//            System.out.println("Best bid is " + orderBook.getBids().firstKey());
-//            System.out.println();
-
         }
-//            System.out.println();
-//            System.out.println("Best ask is " + orderBook.getAsks().firstKey());
-//            System.out.println("Best bid is " + orderBook.getBids().firstKey());
-//            System.out.println();
-//            Thread.sleep(2000);
-//        }
-
-//        System.out.println("Book ready: " + orderBook.getAsks().size());
-//        System.out.println("Mid price at " + LocalDateTime.now() + " is " + orderBook.getMidPrice());
-//        System.out.println("Best bid at " + LocalDateTime.now() + " is " + orderBook.getBids().firstKey());
-//        Thread.sleep(8000);
-//        System.out.println("Best bid at " + LocalDateTime.now() + " is " + orderBook.getBids().firstKey());
-//        System.out.println("Mid price at " + LocalDateTime.now() + " is " + orderBook.getMidPrice());
-
     }
 }
