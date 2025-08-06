@@ -12,11 +12,15 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class WebSocketConnector extends WebSocketClient {
 
     private final String subscriptionMessage;
     private final LocalOrderBook orderBook;
+    private ScheduledExecutorService pingScheduler;
 
     public WebSocketConnector(String serverUrl, String message, LocalOrderBook book) throws URISyntaxException {
         super(new URI(serverUrl));
@@ -28,6 +32,7 @@ public class WebSocketConnector extends WebSocketClient {
     public void onOpen(ServerHandshake handshake) {
         System.out.println("Connected");
         send(subscriptionMessage);
+        startPingScheduler();
     }
 
     @Override
@@ -102,5 +107,16 @@ public class WebSocketConnector extends WebSocketClient {
         }
 
         return levels;
+    }
+
+    private void startPingScheduler() {
+        pingScheduler = Executors.newSingleThreadScheduledExecutor();
+        pingScheduler.scheduleAtFixedRate(() -> {
+            try {
+                sendPing();
+            } catch (Exception e) {
+                MainConnectionTest.logger.severe("Ping failed: " + e.getMessage());
+            }
+        }, 30, 30, TimeUnit.SECONDS);
     }
 }
