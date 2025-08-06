@@ -28,10 +28,28 @@ public class MainConnectionTest {
         while (true) {
             Thread.sleep(2000);
 
+//            temp error handling on inaccurate user input
+            if (ws.isClosed()) {
+                return;
+            }
+
             if (orderBook.getAsks().isEmpty() || orderBook.getBids().isEmpty()) {
                 continue;
             }
+
             logger.info("Mid price is - " + orderBook.getMidPrice());
+
+            try {
+                System.out.println("VWAP for buying 10 BTC is " + orderBook.calculateVWAPBids(10));
+            } catch (IllegalArgumentException exception) {
+                System.out.println(exception.getMessage());
+            }
+
+            try {
+                System.out.println("VWAP for selling 10 BTC is " + orderBook.calculateVWAPAsks(10));
+            } catch (IllegalArgumentException exception) {
+                System.out.println(exception.getMessage());
+            }
         }
     }
 }

@@ -7,7 +7,6 @@ import dto.OrderLevel;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
-import javax.management.MBeanRegistration;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -76,7 +75,6 @@ public class WebSocketConnector extends WebSocketClient {
                 } else {
                     bids = Collections.emptyList();
                 }
-
 //                System.out.println(asks.size() + " - " + bids.size());
                 orderBook.applyUpdate(new OrderBookUpdate(asks, bids));
             }
