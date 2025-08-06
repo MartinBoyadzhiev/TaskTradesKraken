@@ -7,6 +7,7 @@ import dto.OrderLevel;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
+import javax.management.MBeanRegistration;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -34,8 +35,21 @@ public class WebSocketConnector extends WebSocketClient {
     public void onMessage(String message) {
         JsonElement root = JsonParser.parseString(message);
 
-        if (root.isJsonObject() && root.getAsJsonObject().has("event")) {
-            return;
+        if (root.isJsonObject()) {
+            JsonObject object = root.getAsJsonObject();
+            if (object.has("event")) {
+                String event = object.get("event").getAsString();
+
+                if ("subscriptionStatus".equals(event)) {
+                    String status = object.get("status").getAsString();
+                    if ("error".equals(status)) {
+                        String errorMessage = object.get("errorMessage").getAsString();
+                        MainConnectionTest.logger.warning(errorMessage);
+                        close(1000, "Invalid subscription request");
+                        return;
+                    }
+                }
+            }
         }
 
         if (root.isJsonArray()) {
@@ -48,7 +62,7 @@ public class WebSocketConnector extends WebSocketClient {
                 List<OrderLevel> bids = parseLevel(data.getAsJsonArray("bs"));
                 orderBook.initialize(asks, bids);
             } else {
-                List <OrderLevel> asks;
+                List<OrderLevel> asks;
                 List<OrderLevel> bids;
 
                 if (data.has("a")) {
@@ -71,7 +85,7 @@ public class WebSocketConnector extends WebSocketClient {
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        System.out.println("Connection closed " + reason);
+        MainConnectionTest.logger.warning("WebSocket closed: " + code + " reason: " + reason + " remote: " + remote);
     }
 
     @Override
