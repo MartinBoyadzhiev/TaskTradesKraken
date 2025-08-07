@@ -18,14 +18,13 @@ import java.util.concurrent.TimeUnit;
 
 public class WebSocketConnector extends WebSocketClient {
 
+    private final KrakenMessageHandler handler;
     private final String subscriptionMessage;
-    private final LocalOrderBook orderBook;
-    private ScheduledExecutorService pingScheduler;
 
-    public WebSocketConnector(String serverUrl, String message, LocalOrderBook book) throws URISyntaxException {
+    public WebSocketConnector(String serverUrl, String message, KrakenMessageHandler handler) throws URISyntaxException {
         super(new URI(serverUrl));
+        this.handler = handler;
         this.subscriptionMessage = message;
-        this.orderBook = book;
     }
 
     @Override
@@ -41,48 +40,43 @@ public class WebSocketConnector extends WebSocketClient {
 
         if (root.isJsonObject()) {
             JsonObject object = root.getAsJsonObject();
-            if (object.has("event")) {
-                String event = object.get("event").getAsString();
 
-                if ("subscriptionStatus".equals(event)) {
-                    String status = object.get("status").getAsString();
-                    if ("error".equals(status)) {
-                        String errorMessage = object.get("errorMessage").getAsString();
-                        MainConnectionTest.logger.warning(errorMessage);
-                        close(1000, "Invalid subscription request");
-                        return;
-                    }
+            if (object.has("event") && "heartbeat".equals(object.get("event").getAsString())) {
+                return;
+            }
+
+            if (object.has("event") && "systemStatus".equals(object.get("event").getAsString())) {
+                return;
+            }
+
+            if (object.has("event") && "subscriptionStatus".equals(object.get("event").getAsString())) {
+                String status = object.get("status").getAsString();
+                if ("error".equals(status)) {
+                    String errorMsg = object.get("errorMessage").getAsString();
+                    handler.onError(errorMsg);
+                } else {
+                    MainConnectionTest.logger.info("Subscribed successfully: " + object);
                 }
+                return;
             }
         }
 
-        if (root.isJsonArray()) {
-            JsonArray array = root.getAsJsonArray();
-            JsonObject data = array.get(1).getAsJsonObject();
+        JsonArray arr = root.getAsJsonArray();
+        JsonObject data = arr.get(1).getAsJsonObject();
+        String pair = arr.get(3).getAsString();
 
-            if (data.has("as") && data.has("bs")) {
+        if (data.has("as") && data.has("bs")) {
 
-                List<OrderLevel> asks = parseLevel(data.getAsJsonArray("as"));
-                List<OrderLevel> bids = parseLevel(data.getAsJsonArray("bs"));
-                orderBook.initialize(asks, bids);
-            } else {
-                List<OrderLevel> asks;
-                List<OrderLevel> bids;
+            JsonArray asArr =  data.getAsJsonArray("as");
+            JsonArray bsArr = data.getAsJsonArray("bs");
+            handler.onSnapshot(pair, parseLevel(asArr), parseLevel(bsArr));
+        } else {
+            List<OrderLevel> asks = data.has("a") ? parseLevel(data.getAsJsonArray("a"))
+                    : Collections.emptyList();
+            List<OrderLevel> bids = data.has("b") ? parseLevel(data.getAsJsonArray("b"))
+                    : Collections.emptyList();
 
-                if (data.has("a")) {
-                    asks = parseLevel(data.getAsJsonArray("a"));
-                } else {
-                    asks = Collections.emptyList();
-                }
-
-                if (data.has("b")) {
-                    bids = parseLevel(data.getAsJsonArray("b"));
-                } else {
-                    bids = Collections.emptyList();
-                }
-//                System.out.println(asks.size() + " - " + bids.size());
-                orderBook.applyUpdate(new OrderBookUpdate(asks, bids));
-            }
+            handler.onUpdate(pair, new OrderBookUpdate(asks, bids));
         }
     }
 
@@ -105,18 +99,17 @@ public class WebSocketConnector extends WebSocketClient {
             double volume = Double.parseDouble(level.get(1).getAsString());
             levels.add(new OrderLevel(price, volume));
         }
-
         return levels;
     }
 
     private void startPingScheduler() {
-        pingScheduler = Executors.newSingleThreadScheduledExecutor();
+        ScheduledExecutorService pingScheduler = Executors.newSingleThreadScheduledExecutor();
         pingScheduler.scheduleAtFixedRate(() -> {
             try {
                 sendPing();
             } catch (Exception e) {
                 MainConnectionTest.logger.severe("Ping failed: " + e.getMessage());
             }
-        }, 30, 30, TimeUnit.SECONDS);
+        }, 30, 60, TimeUnit.SECONDS);
     }
 }
