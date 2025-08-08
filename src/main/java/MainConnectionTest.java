@@ -1,11 +1,12 @@
 import com.google.gson.Gson;
 import dto.KrakenSubscription;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Logger;
 
 public class MainConnectionTest {
 
@@ -13,7 +14,7 @@ public class MainConnectionTest {
     private static final int DEPTH_LIMIT = Integer.parseInt(System.getenv("DEPTH_LIMIT"));
     private static final int VWAP_AMOUNT = Integer.parseInt(System.getenv("VWAP_AMOUNT"));
     private static final Gson gson = new Gson();
-    public static final Logger logger = Logger.getLogger("MainConnectionTest");
+    private static final Logger logger = LoggerFactory.getLogger(MainConnectionTest.class);
 
     public static void main(String[] args) throws URISyntaxException, InterruptedException {
         OrderBookManager bookManager = new OrderBookManager(DEPTH_LIMIT);
@@ -40,9 +41,10 @@ public class MainConnectionTest {
                 if (book.getAsks().isEmpty() || book.getBids().isEmpty()) {
                     continue;
                 }
-                System.out.println(pair + " mid price is " + book.getMidPrice());
-                System.out.println(pair + " asks VWAP price is " + book.calculateVWAPAsks(VWAP_AMOUNT));
-                System.out.println(pair + " bids VWAP price is " + book.calculateVWAPAsks(VWAP_AMOUNT));
+
+                logger.info("{} mid price is {}", pair, book.getMidPrice());
+                logger.info("{} asks VWAP price is {}", pair, book.calculateVWAPAsks(VWAP_AMOUNT));
+                logger.info("{} bids VWAP price is {}", pair, book.calculateVWAPBids(VWAP_AMOUNT));
             }
         }
     }

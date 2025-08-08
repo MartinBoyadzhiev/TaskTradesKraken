@@ -1,5 +1,7 @@
 import dto.OrderBookUpdate;
 import dto.OrderLevel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -10,6 +12,7 @@ public class OrderBookManager implements KrakenMessageHandler {
 
     private final Map<String, LocalOrderBook> bookManager = new ConcurrentHashMap<>();
     private final int depth;
+    private final Logger logger = LoggerFactory.getLogger(OrderBookManager.class);
 
     public OrderBookManager(int depth) {
         this.depth = depth;
@@ -31,7 +34,7 @@ public class OrderBookManager implements KrakenMessageHandler {
 
     @Override
     public void onError(String errorMessage) {
-//  TODO
+        logger.error("Error in WebSocket connection: {}", errorMessage);
     }
 
     public LocalOrderBook getBook(String pairName) {

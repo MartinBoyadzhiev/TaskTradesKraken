@@ -6,6 +6,8 @@ import dto.OrderBookUpdate;
 import dto.OrderLevel;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -20,6 +22,7 @@ public class WebSocketConnector extends WebSocketClient {
 
     private final KrakenMessageHandler handler;
     private final String subscriptionMessage;
+    private static final Logger logger = LoggerFactory.getLogger(WebSocketConnector.class);
 
     public WebSocketConnector(String serverUrl, String message, KrakenMessageHandler handler) throws URISyntaxException {
         super(new URI(serverUrl));
@@ -29,7 +32,7 @@ public class WebSocketConnector extends WebSocketClient {
 
     @Override
     public void onOpen(ServerHandshake handshake) {
-        System.out.println("Connected");
+        logger.info("Connection successful");
         send(subscriptionMessage);
         startPingScheduler();
     }
@@ -55,7 +58,7 @@ public class WebSocketConnector extends WebSocketClient {
                     String errorMsg = object.get("errorMessage").getAsString();
                     handler.onError(errorMsg);
                 } else {
-                    MainConnectionTest.logger.info("Subscribed successfully: " + object);
+                    logger.info("Subscribed successfully: {}", object);
                 }
                 return;
             }
@@ -82,12 +85,12 @@ public class WebSocketConnector extends WebSocketClient {
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        MainConnectionTest.logger.warning("WebSocket closed: " + code + " reason: " + reason + " remote: " + remote);
+        logger.info("WebSocket connection closed: {} reason: {} remote: {}", code, reason, remote);
     }
 
     @Override
     public void onError(Exception ex) {
-        ex.printStackTrace();
+        logger.error("WebSocket error.", ex);
     }
 
     private List<OrderLevel> parseLevel(JsonArray array) {
@@ -108,7 +111,7 @@ public class WebSocketConnector extends WebSocketClient {
             try {
                 sendPing();
             } catch (Exception e) {
-                MainConnectionTest.logger.severe("Ping failed: " + e.getMessage());
+                logger.error("WebSocket connection failed.", e);
             }
         }, 30, 60, TimeUnit.SECONDS);
     }
