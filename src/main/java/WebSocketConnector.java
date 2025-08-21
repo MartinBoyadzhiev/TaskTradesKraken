@@ -1,33 +1,35 @@
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import dto.OrderBookUpdate;
-import dto.OrderLevel;
+import com.google.gson.*;
+import dto.KrakenSubscription;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class WebSocketConnector extends WebSocketClient {
+//    Subscribe to given pairs, send pings periodically, pass data to buffer
 
-    private final KrakenMessageHandler handler;
+//    TODO multiple stream queues
+
+    public static final int DEPTH_LIMIT = Integer.parseInt(System.getenv("DEPTH_LIMIT"));
+    public static final String SUBSCRIPTION_PAIRS = System.getenv("KRAKEN_PAIR");
+    private static final String KRAKEN_WS_URL = System.getenv("KRAKEN_WS_URL");
+    private final LinkedBlockingQueue<JsonElement> buffer;
     private final String subscriptionMessage;
-    private static final Logger logger = LoggerFactory.getLogger(WebSocketConnector.class);
+    private final Logger logger = LoggerFactory.getLogger(WebSocketConnector.class);
+    private final Gson gson = new Gson();
 
-    public WebSocketConnector(String serverUrl, String message, KrakenMessageHandler handler) throws URISyntaxException {
-        super(new URI(serverUrl));
-        this.handler = handler;
-        this.subscriptionMessage = message;
+    public WebSocketConnector(LinkedBlockingQueue<JsonElement> buffer) throws URISyntaxException {
+        super(new URI(KRAKEN_WS_URL));
+        this.buffer = buffer;
+        this.subscriptionMessage = getSubscriptionMessage();
     }
 
     @Override
@@ -39,70 +41,26 @@ public class WebSocketConnector extends WebSocketClient {
 
     @Override
     public void onMessage(String message) {
-        JsonElement root = JsonParser.parseString(message);
-
-        if (root.isJsonObject()) {
-            JsonObject object = root.getAsJsonObject();
-
-            if (object.has("event") && "heartbeat".equals(object.get("event").getAsString())) {
-                return;
-            }
-
-            if (object.has("event") && "systemStatus".equals(object.get("event").getAsString())) {
-                return;
-            }
-
-            if (object.has("event") && "subscriptionStatus".equals(object.get("event").getAsString())) {
-                String status = object.get("status").getAsString();
-                if ("error".equals(status)) {
-                    String errorMsg = object.get("errorMessage").getAsString();
-                    handler.onError(errorMsg);
-                } else {
-                    logger.info("Subscribed successfully: {}", object);
-                }
-                return;
-            }
-        }
-
-        JsonArray arr = root.getAsJsonArray();
-        JsonObject data = arr.get(1).getAsJsonObject();
-        String pair = arr.get(3).getAsString();
-
-        if (data.has("as") && data.has("bs")) {
-
-            JsonArray asArr =  data.getAsJsonArray("as");
-            JsonArray bsArr = data.getAsJsonArray("bs");
-            handler.onSnapshot(pair, parseLevel(asArr), parseLevel(bsArr));
-        } else {
-            List<OrderLevel> asks = data.has("a") ? parseLevel(data.getAsJsonArray("a"))
-                    : Collections.emptyList();
-            List<OrderLevel> bids = data.has("b") ? parseLevel(data.getAsJsonArray("b"))
-                    : Collections.emptyList();
-
-            handler.onUpdate(pair, new OrderBookUpdate(asks, bids));
-        }
+        JsonElement data = JsonParser.parseString(message);
+        this.buffer.offer(data);
     }
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
+//        TODO Reconnection logic
         logger.info("WebSocket connection closed: {} reason: {} remote: {}", code, reason, remote);
     }
 
     @Override
     public void onError(Exception ex) {
+//        TODO Reconnection logic
         logger.error("WebSocket error.", ex);
     }
 
-    private List<OrderLevel> parseLevel(JsonArray array) {
-        List<OrderLevel> levels = new ArrayList<>();
-
-        for (JsonElement e : array) {
-            JsonArray level = e.getAsJsonArray();
-            double price = Double.parseDouble(level.get(0).getAsString());
-            double volume = Double.parseDouble(level.get(1).getAsString());
-            levels.add(new OrderLevel(price, volume));
-        }
-        return levels;
+    private String getSubscriptionMessage() {
+        List<String> subscriptionPairs = Arrays.stream(SUBSCRIPTION_PAIRS.split(",")).toList();
+        KrakenSubscription krakenSubscription = new KrakenSubscription(subscriptionPairs, DEPTH_LIMIT);
+        return gson.toJson(krakenSubscription);
     }
 
     private void startPingScheduler() {
