@@ -1,27 +1,23 @@
+package handles;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import dto.OrderLevel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import enums.EnvVar;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.TreeMap;
 
-public class OrderBookManager {
-//    manage local order book state, parse, invoke calculations periodically.
-
-//    TODO calculate from DataConsumer
+public class BookHandle {
 
     private final String pairName;
     private final LocalOrderBook book;
-    private long lastCalculationTime = 0;
-    private final Logger logger = LoggerFactory.getLogger(OrderBookManager.class);
 
-    public OrderBookManager(String pair, int depth) {
-        this.pairName = pair;
-        this.book = new LocalOrderBook(pair, depth);
+    public BookHandle(String pairName) {
+        this.pairName = pairName;
+        this.book = new LocalOrderBook(pairName);
     }
 
     public String getPairName() {
@@ -77,7 +73,7 @@ public class OrderBookManager {
                 bids.put(b.price(), b.volume());
             }
         }
-        this.book.trim();
+        this.trim();
     }
 
     private List<OrderLevel> parseLevel(JsonArray array) {
@@ -92,14 +88,17 @@ public class OrderBookManager {
         return levels;
     }
 
-    public void doCalculations() {
-        if (System.currentTimeMillis() - lastCalculationTime > 1000) {
-            logger.info("Mid price for {}: {}", this.pairName, this.book.getMidPrice());
-            if (pairName.startsWith("XBT")) {
-                logger.info("Asks VWAP for 10 BTC is {}", this.book.calculateVWAPAsks(10));
-                logger.info("Bids VWAP for 10 BTC is {}", this.book.calculateVWAPBids(10));
-            }
-            lastCalculationTime = System.currentTimeMillis();
+    private void trim() {
+        TreeMap<Double, Double> asks = this.book.getAsks();
+        TreeMap<Double, Double> bids = this.book.getBids();
+        int depthLimit = EnvVar.DEPTH_LIMIT.getInt();
+
+        while (asks.size() > depthLimit) {
+            asks.pollLastEntry();
+        }
+
+        while (bids.size() > depthLimit) {
+            bids.pollLastEntry();
         }
     }
 }

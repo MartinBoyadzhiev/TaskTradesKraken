@@ -1,18 +1,21 @@
+package handles;
+
 import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
 
 public class LocalOrderBook {
-//    Store order book data, calculate, trim,
 
-//    TODO remove trim and bring it to the manager
-
+    private final String pairName;
     private final TreeMap<Double, Double> asks = new TreeMap<>();
     private final TreeMap<Double, Double> bids = new TreeMap<>(Comparator.reverseOrder());
-    private final int depth;
 
-    public LocalOrderBook(String name, int depthLimit) {
-        this.depth = depthLimit;
+    public LocalOrderBook(String pairName) {
+        this.pairName = pairName;
+    }
+
+    public String getPairName() {
+        return pairName;
     }
 
     public TreeMap<Double, Double> getBids() {
@@ -85,16 +88,5 @@ public class LocalOrderBook {
         }
 
         return sum / originalAmount;
-    }
-
-    public void trim() {
-
-        while (asks.size() > depth) {
-            asks.pollLastEntry();
-        }
-
-        while (bids.size() > depth) {
-            bids.pollLastEntry();
-        }
     }
 }
