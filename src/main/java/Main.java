@@ -1,4 +1,4 @@
-import com.google.gson.JsonElement;
+import dto.BookUpdate;
 import enums.EnvVar;
 import handles.QueueHandle;
 import java.net.URISyntaxException;
@@ -23,7 +23,7 @@ public class Main {
     private static ConcurrentHashMap<String, QueueHandle> initiateQueueMap(List<String> subscriptionPairs) {
         ConcurrentHashMap<String, QueueHandle> queueHandlerMap = new ConcurrentHashMap<>();
         for (String subscriptionPair : subscriptionPairs) {
-            LinkedBlockingQueue<JsonElement> queue = new LinkedBlockingQueue<>();
+            LinkedBlockingQueue<BookUpdate> queue = new LinkedBlockingQueue<>();
             QueueHandle handler = new QueueHandle(subscriptionPair, queue);
             queueHandlerMap.put(subscriptionPair, handler);
         }

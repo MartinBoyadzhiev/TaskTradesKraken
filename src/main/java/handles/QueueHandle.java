@@ -1,14 +1,14 @@
 package handles;
 
-import com.google.gson.JsonElement;
+import dto.BookUpdate;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class QueueHandle {
 
     private final String pairName;
-    private final LinkedBlockingQueue<JsonElement> streamQueue;
+    private final LinkedBlockingQueue<BookUpdate> streamQueue;
 
-    public QueueHandle(String pairName, LinkedBlockingQueue<JsonElement> streamQueue) {
+    public QueueHandle(String pairName, LinkedBlockingQueue<BookUpdate> streamQueue) {
         this.pairName = pairName;
         this.streamQueue = streamQueue;
     }
@@ -17,7 +17,7 @@ public class QueueHandle {
         return pairName;
     }
 
-    public LinkedBlockingQueue<JsonElement> getStreamQueue() {
+    public LinkedBlockingQueue<BookUpdate> getStreamQueue() {
         return streamQueue;
     }
 }

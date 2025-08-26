@@ -1,12 +1,10 @@
 package handles;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import dto.BookUpdate;
+import dto.KrakenBookUpdate;
 import dto.OrderLevel;
+import dto.UpdateData;
 import enums.EnvVar;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.TreeMap;
 
@@ -28,20 +26,15 @@ public class BookHandle {
         return this.book;
     }
 
-    public void handleUpdateData(JsonElement data) {
-        JsonArray arr = data.getAsJsonArray();
-        JsonObject updateInfo = arr.get(1).getAsJsonObject();
+    public void handleUpdateData(BookUpdate data) {
 
-        if (updateInfo.has("as") && updateInfo.has("bs")) {
-            JsonArray asArr =  updateInfo.getAsJsonArray("as");
-            JsonArray bsArr = updateInfo.getAsJsonArray("bs");
-            this.onSnapshot(parseLevel(asArr), parseLevel(bsArr));
-        } else {
-            List<OrderLevel> askUpdates = updateInfo.has("a") ? parseLevel(updateInfo.getAsJsonArray("a"))
-                    : Collections.emptyList();
-            List<OrderLevel> bidUpdates = updateInfo.has("b") ? parseLevel(updateInfo.getAsJsonArray("b"))
-                    : Collections.emptyList();
-            this.onUpdate(askUpdates, bidUpdates);
+        if (data instanceof KrakenBookUpdate update) {
+            UpdateData updateData = update.getData().getFirst();
+            if (update.getType().equals("snapshot")) {
+                this.onSnapshot(updateData.getAsks(), updateData.getBids());
+            } else if (update.getType().equals("update")) {
+                this.onUpdate(updateData.getAsks(), updateData.getBids());
+            }
         }
     }
 
@@ -50,8 +43,8 @@ public class BookHandle {
         TreeMap<Double, Double> bids = this.book.getBids();
         asks.clear();
         bids.clear();
-        asksSnapshot.forEach(ask -> asks.put(ask.price(), ask.volume()));
-        bidsSnapshot.forEach(bid -> bids.put(bid.price(), bid.volume()));
+        asksSnapshot.forEach(ask -> asks.put(ask.price(), ask.qty()));
+        bidsSnapshot.forEach(bid -> bids.put(bid.price(), bid.qty()));
     }
 
     private void onUpdate(List<OrderLevel> askUpdates, List<OrderLevel> bidUpdates) {
@@ -59,33 +52,21 @@ public class BookHandle {
         TreeMap<Double, Double> bids = this.book.getBids();
 
         for (OrderLevel a : askUpdates) {
-            if (a.volume() == 0) {
+            if (a.qty() == 0) {
                 asks.remove(a.price());
             } else {
-                asks.put(a.price(), a.volume());
+                asks.put(a.price(), a.qty());
             }
         }
 
         for (OrderLevel b : bidUpdates) {
-            if (b.volume() == 0) {
+            if (b.qty() == 0) {
                 bids.remove(b.price());
             } else {
-                bids.put(b.price(), b.volume());
+                bids.put(b.price(), b.qty());
             }
         }
         this.trim();
-    }
-
-    private List<OrderLevel> parseLevel(JsonArray array) {
-        List<OrderLevel> levels = new ArrayList<>();
-
-        for (JsonElement e : array) {
-            JsonArray level = e.getAsJsonArray();
-            double price = Double.parseDouble(level.get(0).getAsString());
-            double volume = Double.parseDouble(level.get(1).getAsString());
-            levels.add(new OrderLevel(price, volume));
-        }
-        return levels;
     }
 
     private void trim() {

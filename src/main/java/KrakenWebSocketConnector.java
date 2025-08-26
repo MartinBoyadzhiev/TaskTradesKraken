@@ -1,5 +1,8 @@
 import com.google.gson.*;
-import dto.KrakenSubscription;
+import dto.BookUpdate;
+import dto.KrakenBookUpdate;
+import dto.Message;
+import dto.Params;
 import enums.EnvVar;
 import handles.QueueHandle;
 import org.java_websocket.client.WebSocketClient;
@@ -34,40 +37,34 @@ public class KrakenWebSocketConnector extends WebSocketClient {
 
     @Override
     public void onMessage(String message) {
-//       TODO implement parsing with dto
-        JsonElement data = JsonParser.parseString(message);
-        if (data.isJsonObject()) {
-            handleSystemData(data.getAsJsonObject());
+        JsonObject data = JsonParser.parseString(message).getAsJsonObject();
+        if (!data.has("channel") || !data.get("channel").getAsString().equals("book")) {
+            handleSystemData(data);
         } else {
-            String pairName = data.getAsJsonArray().get(3).getAsString();
-            queueHandlerMap.computeIfPresent(pairName, (k, handle) ->  {
-                handle.getStreamQueue().offer(data);
+            String pairName = getPairName(data);
+            BookUpdate update = gson.fromJson(message, KrakenBookUpdate.class);
+            update.setPairName(pairName);
+            queueHandlerMap.computeIfPresent(pairName, (k, handle) -> {
+                handle.getStreamQueue().offer(update);
                 return handle;
             });
         }
     }
 
+    private String getPairName(JsonObject data) {
+        JsonElement arrElement = data.get("data").getAsJsonArray().get(0);
+        return arrElement.getAsJsonObject().get("symbol").getAsString();
+    }
+
     private void handleSystemData(JsonObject object) {
-        if (object.has("event") && "heartbeat".equals(object.get("event").getAsString())) {
-            logger.trace("Heartbeat received from Kraken WS");
-        }
-
-        if (object.has("event") && "systemStatus".equals(object.get("event").getAsString())) {
-            logger.debug("Kraken WS systemStatus: status={}, version={}, connectionID={}",
-                    object.get("status").getAsString(),
-                    object.get("version").getAsString(),
-                    object.get("connectionID").getAsLong()
-            );
-        }
-
-        if (object.has("event") && "subscriptionStatus".equals(object.get("event").getAsString())) {
-            String status = object.get("status").getAsString();
-            if ("error".equals(status)) {
-                String errorMsg = object.get("errorMessage").getAsString();
-                logger.error("Error in WebSocket connection: {}", errorMsg);
-            } else {
-                logger.info("Subscribed successfully: {}", object);
-            }
+        if (object.has("channel") && object.get("channel").getAsString().equals("heartbeat")) {
+            logger.trace("Heartbeat: {}", object);
+        } else if (object.has("channel") && object.get("channel").getAsString().equals("status")) {
+            logger.debug("Status: {}", object);
+        } else if (object.has("method") && object.get("method").getAsString().equals("pong")) {
+            logger.debug("Ping response: {}", object);
+        } else {
+            logger.info("Subscribed successfully: {}", object);
         }
     }
 
@@ -85,18 +82,20 @@ public class KrakenWebSocketConnector extends WebSocketClient {
 
     private String formatWebSocketURL() {
         List<String> subscriptionPairs = Arrays.stream(EnvVar.KRAKEN_PAIR.get().split(",")).toList();
-        KrakenSubscription krakenSubscription = new KrakenSubscription(subscriptionPairs, EnvVar.DEPTH_LIMIT.getInt());
-        return gson.toJson(krakenSubscription);
+        Params params = new Params("book", subscriptionPairs, EnvVar.DEPTH_LIMIT.getInt(), true);
+        Message message = new Message("subscribe", params);
+        return gson.toJson(message);
     }
 
     private void startPingScheduler() {
-        ScheduledExecutorService pingScheduler = Executors.newSingleThreadScheduledExecutor();
-        pingScheduler.scheduleAtFixedRate(() -> {
-            try {
-                sendPing();
-            } catch (Exception e) {
-                logger.error("WebSocket connection failed.", e);
-            }
-        }, 30, 60, TimeUnit.SECONDS);
+        try (ScheduledExecutorService pingScheduler = Executors.newSingleThreadScheduledExecutor()) {
+            pingScheduler.scheduleAtFixedRate(() -> {
+                try {
+                    sendPing();
+                } catch (Exception e) {
+                    logger.error("WebSocket connection failed.", e);
+                }
+            }, 30, 60, TimeUnit.SECONDS);
+        }
     }
 }

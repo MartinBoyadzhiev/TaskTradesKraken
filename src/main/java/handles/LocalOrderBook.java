@@ -31,7 +31,6 @@ public class LocalOrderBook {
     }
 
     public double calculateVWAPAsks(double amount) {
-
         if (amount <= 0) {
             throw new IllegalArgumentException("Incorrect input amount for VWAP in asks.");
         }
@@ -61,7 +60,6 @@ public class LocalOrderBook {
     }
 
     public double calculateVWAPBids(double amount) {
-
         if (amount <= 0) {
             throw new IllegalArgumentException("Incorrect input amount for VWAP in bids.");
         }

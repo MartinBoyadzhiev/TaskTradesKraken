@@ -1,4 +1,4 @@
-import com.google.gson.JsonElement;
+import dto.BookUpdate;
 import handles.BookHandle;
 import handles.LocalOrderBook;
 import handles.QueueHandle;
@@ -28,7 +28,7 @@ public class DataConsumer extends Thread {
             for (QueueHandle queueHandle : this.queueHandlerMap.values()) {
                 if (queueHandle.getStreamQueue().peek() != null) {
                     try {
-                        JsonElement data = queueHandle.getStreamQueue().take();
+                        BookUpdate data = queueHandle.getStreamQueue().take();
                         BookHandle bookHandle = this.books.get(queueHandle.getPairName());
                         bookHandle.handleUpdateData(data);
                         doCalculations(bookHandle.getBook());
@@ -44,7 +44,7 @@ public class DataConsumer extends Thread {
         Long lastCalculationTime = lastCalculationTimeMap.computeIfAbsent(orderBook.getPairName(), k -> System.currentTimeMillis());
         if (System.currentTimeMillis() - lastCalculationTime > 1000) {
             logger.info("Mid price for {}: {}", orderBook.getPairName().toUpperCase(), orderBook.getMidPrice());
-            if (orderBook.getPairName().startsWith("XBT")) {
+            if (orderBook.getPairName().startsWith("BTC")) {
                 logger.info("Asks VWAP for 10 BTC is {}", orderBook.calculateVWAPAsks(10));
                 logger.info("Bids VWAP for 10 BTC is {}", orderBook.calculateVWAPBids(10));
             }
