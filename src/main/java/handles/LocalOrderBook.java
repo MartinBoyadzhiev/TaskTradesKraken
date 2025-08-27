@@ -34,7 +34,6 @@ public class LocalOrderBook {
         if (amount <= 0) {
             throw new IllegalArgumentException("Incorrect input amount for VWAP in asks.");
         }
-
         double originalAmount = amount;
         double sum = 0;
 

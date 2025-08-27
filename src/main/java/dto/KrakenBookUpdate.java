@@ -1,20 +1,16 @@
 package dto;
 
-import java.util.List;
-
 public class KrakenBookUpdate extends BookUpdate {
-    private String channel;
-    private String type;
-    private List<UpdateData> data;
 
-    public KrakenBookUpdate() {
+    private final String type;
+
+    public KrakenBookUpdate(String pairName, String type) {
+        super(pairName);
+        this.type = type;
+
     }
 
     public String getType() {
         return type;
-    }
-
-    public List<UpdateData> getData() {
-        return data;
     }
 }

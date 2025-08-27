@@ -3,17 +3,16 @@ package handles;
 import dto.BookUpdate;
 import dto.KrakenBookUpdate;
 import dto.OrderLevel;
-import dto.UpdateData;
 import enums.EnvVar;
 import java.util.List;
 import java.util.TreeMap;
 
-public class BookHandle {
+public class BookHandler {
 
     private final String pairName;
     private final LocalOrderBook book;
 
-    public BookHandle(String pairName) {
+    public BookHandler(String pairName) {
         this.pairName = pairName;
         this.book = new LocalOrderBook(pairName);
     }
@@ -27,13 +26,11 @@ public class BookHandle {
     }
 
     public void handleUpdateData(BookUpdate data) {
-
         if (data instanceof KrakenBookUpdate update) {
-            UpdateData updateData = update.getData().getFirst();
             if (update.getType().equals("snapshot")) {
-                this.onSnapshot(updateData.getAsks(), updateData.getBids());
+                this.onSnapshot(update.getAsks(), update.getBids());
             } else if (update.getType().equals("update")) {
-                this.onUpdate(updateData.getAsks(), updateData.getBids());
+                this.onUpdate(update.getAsks(), update.getBids());
             }
         }
     }

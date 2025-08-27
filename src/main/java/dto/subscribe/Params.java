@@ -1,4 +1,4 @@
-package dto;
+package dto.subscribe;
 
 import java.util.List;
 

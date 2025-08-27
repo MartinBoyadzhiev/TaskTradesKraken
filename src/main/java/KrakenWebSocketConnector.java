@@ -1,8 +1,7 @@
 import com.google.gson.*;
-import dto.BookUpdate;
-import dto.KrakenBookUpdate;
-import dto.Message;
-import dto.Params;
+import dto.*;
+import dto.subscribe.Message;
+import dto.subscribe.Params;
 import enums.EnvVar;
 import handles.QueueHandle;
 import org.java_websocket.client.WebSocketClient;
@@ -42,8 +41,13 @@ public class KrakenWebSocketConnector extends WebSocketClient {
             handleSystemData(data);
         } else {
             String pairName = getPairName(data);
-            BookUpdate update = gson.fromJson(message, KrakenBookUpdate.class);
-            update.setPairName(pairName);
+            KrakenUpdateMessage updateMessage = gson.fromJson(message, KrakenUpdateMessage.class);
+            UpdateData updateData = updateMessage.getData().getFirst();
+
+            BookUpdate update = new KrakenBookUpdate(pairName, updateMessage.getType());
+            parseLevels(updateData.getAsks(), update.getAsks());
+            parseLevels(updateData.getBids(), update.getBids());
+
             queueHandlerMap.computeIfPresent(pairName, (k, handle) -> {
                 handle.getStreamQueue().offer(update);
                 return handle;
@@ -96,6 +100,12 @@ public class KrakenWebSocketConnector extends WebSocketClient {
                     logger.error("WebSocket connection failed.", e);
                 }
             }, 30, 60, TimeUnit.SECONDS);
+        }
+    }
+
+    private void parseLevels(List<OrderLevel> data, List<OrderLevel> levels) {
+        for (OrderLevel level : data) {
+            levels.add(new OrderLevel(level.price(), level.qty()));
         }
     }
 }

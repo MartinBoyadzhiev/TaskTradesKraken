@@ -1,4 +1,4 @@
-package dto;
+package dto.subscribe;
 
 public class Message {
     private final String method;
