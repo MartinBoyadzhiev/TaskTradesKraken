@@ -1,18 +1,20 @@
 package handles;
 
-import dto.BookUpdate;
-import dto.KrakenBookUpdate;
-import dto.OrderLevel;
+import common.BookHandler;
+import common.dto.BookUpdate;
+import common.LocalOrderBook;
+import dto_kraken.KrakenBookUpdate;
+import common.dto.OrderLevel;
 import enums.EnvVar;
 import java.util.List;
 import java.util.TreeMap;
 
-public class BookHandler {
+public class KrakenBookHandler implements BookHandler {
 
     private final String pairName;
     private final LocalOrderBook book;
 
-    public BookHandler(String pairName) {
+    public KrakenBookHandler(String pairName) {
         this.pairName = pairName;
         this.book = new LocalOrderBook(pairName);
     }
@@ -21,10 +23,12 @@ public class BookHandler {
         return pairName;
     }
 
+    @Override
     public LocalOrderBook getBook() {
         return this.book;
     }
 
+    @Override
     public void handleUpdateData(BookUpdate data) {
         if (data instanceof KrakenBookUpdate update) {
             if (update.getType().equals("snapshot")) {

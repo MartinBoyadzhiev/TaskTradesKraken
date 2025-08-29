@@ -1,4 +1,4 @@
-package handles;
+package common;
 
 import java.util.Comparator;
 import java.util.Map;
@@ -7,6 +7,7 @@ import java.util.TreeMap;
 public class LocalOrderBook {
 
     private final String pairName;
+    private long lastUpdateID = -1;
     private final TreeMap<Double, Double> asks = new TreeMap<>();
     private final TreeMap<Double, Double> bids = new TreeMap<>(Comparator.reverseOrder());
 
@@ -18,16 +19,16 @@ public class LocalOrderBook {
         return pairName;
     }
 
-    public TreeMap<Double, Double> getBids() {
-        return bids;
-    }
-
     public TreeMap<Double, Double> getAsks() {
         return asks;
     }
 
+    public TreeMap<Double, Double> getBids() {
+        return bids;
+    }
+
     public double getMidPrice() {
-        return (bids.firstKey() + asks.firstKey()) / 2;
+        return (asks.firstKey() + bids.firstKey()) / 2;
     }
 
     public double calculateVWAPAsks(double amount) {

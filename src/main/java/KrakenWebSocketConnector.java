@@ -1,9 +1,11 @@
 import com.google.gson.*;
-import dto.*;
-import dto.subscribe.Message;
-import dto.subscribe.Params;
+import common.dto.BookUpdate;
+import common.dto.OrderLevel;
+import dto_kraken.*;
+import dto_kraken.Message;
+import dto_kraken.Params;
 import enums.EnvVar;
-import handles.QueueHandle;
+import common.QueueHandle;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 import org.slf4j.Logger;
@@ -11,19 +13,21 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.*;
 
 public class KrakenWebSocketConnector extends WebSocketClient {
 
-    private final ConcurrentHashMap<String, QueueHandle> queueHandlerMap;
+    private final HashMap<String, Map<String, QueueHandle>> queueHandlerMapPerExchange;
     private final String subscriptionMessage;
     private final Logger logger = LoggerFactory.getLogger(KrakenWebSocketConnector.class);
     private final Gson gson = new Gson();
 
-    public KrakenWebSocketConnector(ConcurrentHashMap<String, QueueHandle> queueHandlerMap) throws URISyntaxException {
+    public KrakenWebSocketConnector(HashMap<String, Map<String, QueueHandle>> queueHandlerMapPerExchange) throws URISyntaxException {
         super(new URI(EnvVar.KRAKEN_WS_URL.get()));
-        this.queueHandlerMap = queueHandlerMap;
+        this.queueHandlerMapPerExchange = queueHandlerMapPerExchange;
         this.subscriptionMessage = formatWebSocketURL();
     }
 
@@ -44,11 +48,12 @@ public class KrakenWebSocketConnector extends WebSocketClient {
             KrakenUpdateMessage updateMessage = gson.fromJson(message, KrakenUpdateMessage.class);
             UpdateData updateData = updateMessage.getData().getFirst();
 
-            BookUpdate update = new KrakenBookUpdate(pairName, updateMessage.getType());
+            BookUpdate update = new KrakenBookUpdate(updateMessage.getType());
             parseLevels(updateData.getAsks(), update.getAsks());
             parseLevels(updateData.getBids(), update.getBids());
 
-            queueHandlerMap.computeIfPresent(pairName, (k, handle) -> {
+            Map<String, QueueHandle> queueHandleMap = queueHandlerMapPerExchange.get("kraken");
+            queueHandleMap.computeIfPresent(pairName, (k, handle) -> {
                 handle.getStreamQueue().offer(update);
                 return handle;
             });
