@@ -1,6 +1,6 @@
 import common.BookHandler;
 import common.DataConsumer;
-import enums.EnvVar;
+import config.Constant;
 import common.QueueHandle;
 import handles.KrakenBookHandler;
 import java.net.URISyntaxException;
@@ -12,7 +12,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class Main {
     public static void main(String[] args) throws URISyntaxException {
-        List<String> subscriptionPairs = Arrays.stream(EnvVar.KRAKEN_PAIR.get().split(",")).toList();
+        List<String> subscriptionPairs = Arrays.stream(Constant.KRAKEN_PAIR.split(",")).toList();
         List<String> exchanges = Arrays.stream(System.getenv("EXCHANGES").split(",")).toList();
 
         HashMap<String, Map<String, QueueHandle>> queueHandleMap = initiateQueueMap(exchanges, subscriptionPairs);

@@ -5,7 +5,7 @@ import common.dto.BookUpdate;
 import common.LocalOrderBook;
 import dto_kraken.KrakenBookUpdate;
 import common.dto.OrderLevel;
-import enums.EnvVar;
+import config.Constant;
 import java.util.List;
 import java.util.TreeMap;
 
@@ -73,7 +73,7 @@ public class KrakenBookHandler implements BookHandler {
     private void trim() {
         TreeMap<Double, Double> asks = this.book.getAsks();
         TreeMap<Double, Double> bids = this.book.getBids();
-        int depthLimit = EnvVar.DEPTH_LIMIT.getInt();
+        int depthLimit = Constant.DEPTH_LIMIT;
 
         while (asks.size() > depthLimit) {
             asks.pollLastEntry();

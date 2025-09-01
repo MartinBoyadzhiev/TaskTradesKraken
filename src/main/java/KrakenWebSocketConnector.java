@@ -4,7 +4,7 @@ import common.dto.OrderLevel;
 import dto_kraken.*;
 import dto_kraken.Message;
 import dto_kraken.Params;
-import enums.EnvVar;
+import config.Constant;
 import common.QueueHandle;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
@@ -26,7 +26,7 @@ public class KrakenWebSocketConnector extends WebSocketClient {
     private final Gson gson = new Gson();
 
     public KrakenWebSocketConnector(HashMap<String, Map<String, QueueHandle>> queueHandlerMapPerExchange) throws URISyntaxException {
-        super(new URI(EnvVar.KRAKEN_WS_URL.get()));
+        super(new URI(Constant.KRAKEN_WS_URL));
         this.queueHandlerMapPerExchange = queueHandlerMapPerExchange;
         this.subscriptionMessage = formatWebSocketURL();
     }
@@ -90,8 +90,8 @@ public class KrakenWebSocketConnector extends WebSocketClient {
     }
 
     private String formatWebSocketURL() {
-        List<String> subscriptionPairs = Arrays.stream(EnvVar.KRAKEN_PAIR.get().split(",")).toList();
-        Params params = new Params("book", subscriptionPairs, EnvVar.DEPTH_LIMIT.getInt(), true);
+        List<String> subscriptionPairs = Arrays.stream(Constant.KRAKEN_PAIR.split(",")).toList();
+        Params params = new Params("book", subscriptionPairs, Constant.DEPTH_LIMIT, true);
         Message message = new Message("subscribe", params);
         return gson.toJson(message);
     }
